@@ -188,7 +188,7 @@
     <section id="tab-correo" class="panel">
       <div class="card">
         <h2>Enviar cotizaciones por correo</h2>
-        <p class="hint">Se genera un Excel con las cotizaciones seleccionadas. Si Firebase Storage está configurado, el Excel se sube y el correo EmailJS incluye un enlace de descarga. Si no, el Excel se descarga localmente y el correo va sin enlace público.</p>
+        <p class="hint">Se genera un Excel con las cotizaciones seleccionadas. Si Supabase o Firebase Storage está configurado, el Excel se sube y el correo EmailJS incluye un enlace de descarga. Si no, el Excel se descarga localmente y el correo va sin enlace público.</p>
         <div id="mailSelectionInfo" class="info-box"></div>
         <div class="actions" style="margin-top:10px">
           <button id="btnSelectAllMail" type="button" class="secondary">Seleccionar todas</button>
@@ -217,10 +217,12 @@
   <footer class="app-footer">Cotizador de Muestras · v<span id="appVersion">…</span></footer>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="./supabase-config.js?v=20261124-sb1"></script>
+  <script src="./supabase-client.js?v=20261124-sb1"></script>
   <script src="./firebase-config.js?v=20261124-fb1"></script>
   <script src="./firebase-client.js?v=20261124-fb1"></script>
   <script src="./engine.js?v=20261124-v3static"></script>
   <script src="./store.js?v=20261124-v3static"></script>
-  <script src="./app.js?v=20261124-fb1"></script>
+  <script src="./app.js?v=20261124-sb1"></script>
 </body>
 </html>
