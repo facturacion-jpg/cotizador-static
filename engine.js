@@ -2,7 +2,11 @@
  * Se usa igual en el servidor (Node) y en el navegador (window.CotizadorEngine).
  * Toda la lógica es pura: recibe datos y parámetros, devuelve resultados.
  */
-const api = (function () {
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.CotizadorEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
   function norm(value) {
@@ -214,14 +218,4 @@ const api = (function () {
     calculateQuote,
     compareWithExcel
   };
-})();
-
-export default api;
-export const norm = api.norm;
-export const isBlock = api.isBlock;
-export const rateForBlock = api.rateForBlock;
-export const validateParams = api.validateParams;
-export const findOperation = api.findOperation;
-export const calculateLine = api.calculateLine;
-export const calculateQuote = api.calculateQuote;
-export const compareWithExcel = api.compareWithExcel;
+});

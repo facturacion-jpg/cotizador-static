@@ -1,13 +1,224 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#2d4036" />
-    <title>Cotizador de muestras</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f2c400" />
+  <title>Cotizador de Muestras · Web</title>
+  <link rel="stylesheet" href="./styles.css?v=20261124-v3static" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">SAM</div>
+      <div>
+        <h1>Cotizador de Muestras</h1>
+        <p>Tiempos estándar, costos de transformación y precio sugerido</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="cotizar" type="button">Cotizar</button>
+    <button class="tab" data-tab="historial" type="button">Historial</button>
+    <button class="tab" data-tab="referencias" type="button">Referencias</button>
+    <button class="tab" data-tab="importar" type="button">Importar</button>
+    <button class="tab" data-tab="correo" type="button">Correo</button>
+  </nav>
+
+  <main>
+    <!-- COTIZAR -->
+    <section id="tab-cotizar" class="panel active">
+      <div class="grid-top">
+        <div class="card">
+          <h2>Datos de la referencia</h2>
+          <div class="form-row">
+            <label>Código ref.<input id="refCode" type="text" placeholder="Ej. A0065" /></label>
+            <label>Descripción<input id="refDesc" type="text" placeholder="Ej. CAMISETA MS CON FRAMILON" /></label>
+            <label>Marca<input id="refBrand" type="text" placeholder="Ej. Crearte" /></label>
+            <label>Tipo de prenda
+              <select id="refType"><option value="">Seleccione…</option></select>
+            </label>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Resumen</h2>
+          <div class="kpis">
+            <div class="kpi"><span>SAM confección</span><strong id="kpiSamConf">0,00 min</strong></div>
+            <div class="kpi"><span>SAM terminación + empaque</span><strong id="kpiSamRest">0,00 min</strong></div>
+            <div class="kpi"><span>SAM total prenda</span><strong id="kpiSamTotal">0,00 min</strong></div>
+            <div class="kpi"><span>Costo de transformación</span><strong id="kpiCost">$ 0,00</strong></div>
+            <div class="kpi highlight"><span>Precio sugerido</span><strong id="kpiPrice">$ 0,00</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card params-card">
+        <div class="card-head">
+          <h2>Parámetros de cotización</h2>
+          <span class="badge badge-muted">Configurar antes de operar</span>
+        </div>
+        <p class="hint">Confirma o ajusta estos parámetros antes de cargar las operaciones. Se guardan en el servidor y se aplican al calcular; las cotizaciones ya guardadas conservan los parámetros con que se crearon.</p>
+        <div class="form-row params" id="paramsForm"></div>
+        <div class="actions" style="margin-top:14px">
+          <button id="btnSaveParams" type="button" class="primary">Guardar parámetros</button>
+        </div>
+        <div id="paramInfo" class="info-box"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Operaciones</h2>
+          <div class="actions">
+            <button id="btnAdd" type="button" class="secondary">+ Agregar operación</button>
+            <button id="btnCalculate" type="button" class="primary">Calcular</button>
+            <button id="btnSave" type="button" class="success">Guardar cotización</button>
+            <button id="btnClear" type="button" class="ghost">Limpiar</button>
+          </div>
+        </div>
+        <div id="errorBox" class="error-box" hidden></div>
+        <div class="table-wrap">
+          <table class="ops">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Operación estándar</th>
+                <th>Cantidad</th>
+                <th>Ajuste (s)</th>
+                <th>Base (s)</th>
+                <th>Bloque</th>
+                <th>ID</th>
+                <th>SAM (min)</th>
+                <th>Costo</th>
+                <th>Alertas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="opsBody"></tbody>
+          </table>
+        </div>
+        <p class="hint">El tiempo base se toma del catálogo (validado → base histórica → mediana). El tiempo ajustado, si se diligencia, tiene prioridad.</p>
+      </div>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="tab-historial" class="panel">
+      <div class="card">
+        <div class="card-head">
+          <h2>Cotizaciones guardadas</h2>
+          <div class="actions">
+            <span id="selectionCount" class="badge badge-muted">0 seleccionadas</span>
+            <button id="btnHistoryMail" type="button" class="success">Enviar seleccionadas por correo</button>
+            <button id="btnReloadHistory" type="button" class="secondary">Actualizar</button>
+          </div>
+        </div>
+        <p class="hint">Marque las cotizaciones que desea incluir en el correo y el Excel. Las demás se omiten.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:36px"><input id="selectAllQuotes" type="checkbox" title="Seleccionar todas" /></th>
+              <th>Fecha</th><th>Referencia</th><th>Marca</th><th>Descripción</th><th>Operaciones</th><th>SAM total</th><th>Costo</th><th>Precio sugerido</th><th></th>
+            </tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REFERENCIAS -->
+    <section id="tab-referencias" class="panel">
+      <div class="card">
+        <div class="card-head">
+          <h2>Referencias importadas del Excel</h2>
+          <input id="refSearch" type="search" placeholder="Buscar por código, descripción o tipo…" />
+        </div>
+        <div class="table-wrap fixed-height">
+          <table>
+            <thead><tr><th>Código</th><th>Marca</th><th>Descripción</th><th>Tipo</th><th>SAM conf.</th><th>Term.</th><th>Empaque</th><th>SAM total</th><th>Suplemento</th></tr></thead>
+            <tbody id="refsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- IMPORTAR -->
+    <section id="tab-importar" class="panel">
+      <div class="card">
+        <h2>Importar Excel</h2>
+        <p class="hint">Al importar un archivo se reemplaza <strong>completamente</strong> el catálogo actual: operaciones, referencias y parámetros. Si además marca la opción, se eliminan las cotizaciones guardadas. Antes de reemplazar se guarda una copia de seguridad.</p>
+        <div id="importCurrent" class="info-box"></div>
+        <div class="form-row">
+          <label>Archivo Excel (.xlsm o .xlsx)
+            <input id="importFile" type="file" accept=".xlsm,.xlsx" />
+          </label>
+        </div>
+        <label class="check"><input id="clearQuotes" type="checkbox" checked /> Eliminar también las cotizaciones guardadas</label>
+        <div class="actions" style="margin-top:14px">
+          <button id="btnImport" type="button" class="primary">Importar y reemplazar datos</button>
+          <button id="btnClearData" type="button" class="danger">Limpiar datos actuales</button>
+          <button id="btnRestore" type="button" class="secondary">Restaurar copia anterior</button>
+        </div>
+        <div id="importStatus" class="info-box"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>Copias de seguridad</h2>
+        <p class="hint">Descargue una copia completa y guárdela en otra PC, un pendrive o Drive. Las copias locales se rotan automáticamente y se conservan las últimas 10. Antes de restaurar, pruebe la copia: la prueba no cambia los datos actuales.</p>
+        <div id="backupCurrent" class="info-box"></div>
+        <div class="actions">
+          <button id="btnDownloadBackup" type="button" class="primary">Descargar copia actual</button>
+          <button id="btnCreateBackup" type="button" class="secondary">Crear copia ahora</button>
+        </div>
+        <div class="form-row" style="margin-top:14px">
+          <label>Archivo de copia (.json)
+            <input id="verifyBackupFile" type="file" accept=".json,application/json" />
+          </label>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button id="btnVerifyBackup" type="button" class="secondary">Probar esta copia</button>
+          <button id="btnRestoreBackup" type="button" class="danger">Restaurar desde esta copia</button>
+        </div>
+        <div id="backupList" class="info-box" style="margin-top:14px"></div>
+        <div id="backupStatus" class="info-box"></div>
+      </div>
+    </section>
+
+    <!-- CORREO -->
+    <section id="tab-correo" class="panel">
+      <div class="card">
+        <h2>Enviar cotizaciones por correo</h2>
+        <p class="hint">Se genera un Excel solo con las cotizaciones seleccionadas en el historial y se envía un resumen por EmailJS con un enlace para descargarlo desde la red de la empresa. No necesita cuenta ni contraseña de correo.</p>
+        <div id="mailSelectionInfo" class="info-box"></div>
+        <div class="actions" style="margin-top:10px">
+          <button id="btnSelectAllMail" type="button" class="secondary">Seleccionar todas</button>
+          <button id="btnClearSelectionMail" type="button" class="ghost">No seleccionar ninguna</button>
+        </div>
+        <div id="mailStatus" class="info-box"></div>
+        <label style="display:block;max-width:520px">Correo de destino
+          <input id="mailJsTo" type="text" placeholder="jefe@empresa.com" />
+        </label>
+        <label style="margin-top:14px;display:block;max-width:520px">Asunto del correo
+          <input id="mailSubject" type="text" placeholder="Historial de cotizaciones" />
+        </label>
+        <div class="actions" style="margin-top:14px">
+          <button id="btnMailJsPreview" type="button" class="secondary">Vista previa del correo</button>
+          <button id="btnMailExcel" type="button" class="secondary">Generar / descargar Excel</button>
+          <button id="btnSendMailJs" type="button" class="success">Enviar resumen por EmailJS</button>
+        </div>
+        <div id="mailPreview" class="info-box" style="margin-top:20px"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <div id="operationMenu" class="op-menu" role="listbox" hidden></div>
+
+  <footer class="app-footer">Cotizador de Muestras · v<span id="appVersion">…</span></footer>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="./engine.js?v=20261124-v3static"></script>
+  <script src="./store.js?v=20261124-v3static"></script>
+  <script src="./app.js?v=20261124-v3static"></script>
+</body>
 </html>
