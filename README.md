@@ -7,6 +7,7 @@ Versión estática de la UI 3.0 que corría en `cotizador-muestras.onrender.com`
 - Misma interfaz 3.0: Cotizar, Historial, Referencias, Importar, Correo.
 - Cálculo en navegador con `engine.js` (sin cambios de lógica).
 - Datos guardados en `localStorage` del navegador: cotizaciones, parámetros y catálogo importado.
+- **Respaldo rápido de historial**: en Importar → “Descargar copia actual” genera un JSON con cotizaciones/parámetros/catálogo/referencias. “Probar esta copia” y “Restaurar desde esta copia” permiten mover el historial a otro navegador/PC.
 - Importación de Excel (`.xlsx/.xlsm`) en el navegador con SheetJS.
 - Exportación de historial a Excel en el navegador (3 hojas: Resumen, Cotizaciones, Detalle operaciones).
 - Envío por EmailJS. Si **Supabase** o **Firebase Storage** está configurado, sube el Excel y el correo incluye enlace de descarga; si no, descarga el Excel localmente y envía el correo sin enlace público.
@@ -70,8 +71,9 @@ Si sale `422 The recipients address is corrupted`, revisa en EmailJS que el temp
 ## Estado de datos
 
 - **Ahora**: datos en `localStorage` (por navegador). No compartidos entre equipos.
-- **Respaldo actual**: descargar Excel desde Historial/Correo.
-- **Siguiente paso recomendado**: migrar datos compartidos a Firestore/Supabase DB con auth anónima.
+- **Respaldo rápido**: Importar → “Descargar copia actual” (JSON). Ese JSON se puede probar/restaurar en otro navegador/PC.
+- **Respaldo/entrega**: Excel desde Historial/Correo.
+- **Siguiente paso recomendado**: migrar datos compartidos a Firestore/Supabase DB para que el historial sea común entre equipos.
 
 ## Archivos clave
 

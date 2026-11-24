@@ -122,9 +122,61 @@
     return { ok: true };
   }
 
+  function exportBackup() {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'cotizador-static',
+      catalog: catalog,
+      parameters: { ...params },
+      references: refs || [],
+      quotes: quotes || []
+    };
+  }
+
+  function validateBackup(payload) {
+    if (!payload || typeof payload !== 'object') throw new Error('El archivo no es un respaldo válido.');
+    const q = Array.isArray(payload.quotes) ? payload.quotes : null;
+    const p = payload.parameters && typeof payload.parameters === 'object' ? payload.parameters : null;
+    const c = payload.catalog && typeof payload.catalog === 'object' ? payload.catalog : null;
+    const r = Array.isArray(payload.references) ? payload.references : null;
+    if (!q && !p && !c && !r) throw new Error('El respaldo no contiene datos reconocibles (quotes/parameters/catalog/references).');
+    return {
+      quotes: q ? q.length : quotes.length,
+      operations: c && Array.isArray(c.operations) ? c.operations.length : (catalog?.operations?.length || 0),
+      references: r ? r.length : (c && Array.isArray(c.references) ? c.references.length : (refs?.length || 0)),
+      hasParameters: !!p,
+      hasCatalog: !!c
+    };
+  }
+
+  function importBackup(payload) {
+    const info = validateBackup(payload);
+    if (payload.catalog && typeof payload.catalog === 'object') {
+      catalog = payload.catalog;
+      write(LS_CATALOG, catalog);
+    }
+    if (Array.isArray(payload.references)) {
+      refs = payload.references;
+      write(LS_REFS, refs);
+    } else if (payload.catalog && Array.isArray(payload.catalog.references)) {
+      refs = payload.catalog.references;
+      write(LS_REFS, refs);
+    }
+    if (payload.parameters && typeof payload.parameters === 'object') {
+      params = { ...params, ...payload.parameters };
+      write(LS_PARAMS, params);
+    }
+    if (Array.isArray(payload.quotes)) {
+      quotes = payload.quotes;
+      write(LS_QUOTES, quotes);
+    }
+    return { ok: true, ...info };
+  }
+
   window.CotizadorStore = {
     init, bootstrap, currentParameters, calculate, saveQuote, getQuote, deleteQuote,
-    putParameters, putReference, clearData,
+    putParameters, putReference, clearData, exportBackup, validateBackup, importBackup,
     get quotes() { return quotes; },
     get catalog() { return catalog; },
     get refs() { return refs; },

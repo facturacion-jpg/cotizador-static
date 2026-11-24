@@ -828,33 +828,43 @@ async function restoreData() {
 }
 
 async function loadBackupStatus() {
-  renderBackupStatus({ backups: [], retention: 0, disk: { available: false }, drill: { ok: true, problems: [] } });
+  renderBackupStatus();
 }
 
-function renderBackupStatus(data) {
-  const disk = data.disk || {};
-  const drill = data.drill || {};
-  const list = data.backups || [];
+function renderBackupStatus() {
+  const q = (window.CotizadorStore.quotes || []).length;
+  const r = (window.CotizadorStore.refs || []).length;
+  const ops = (window.CotizadorStore.catalog?.operations || []).length;
   $('backupCurrent').innerHTML =
-    `<strong>Copias guardadas:</strong> ${list.length} de ${data.retention}<br>` +
-    `<strong>Última copia:</strong> ${escapeHtml(list.length ? list[0].name : 'ninguna')}<br>` +
-    `<strong>Disco libre:</strong> ${disk.available ? escapeHtml(disk.freeMB + ' MB (' + disk.freePct + '%)') : 'no disponible'}${disk.low ? ' — POCO ESPACIO' : ''}<br>` +
-    `<strong>Ensayo de restauración:</strong> ${drill.ok ? 'OK' : 'FALLÓ: ' + escapeHtml((drill.problems || []).join('; '))}`;
-  $('backupList').innerHTML = list.length
-    ? list.slice(0, 10).map((b) => `<div>${escapeHtml(b.name)} · ${fmt(b.size / 1024, 0)} KB</div>`).join('')
-    : '<div>Todavía no hay copias guardadas.</div>';
+    `<strong>Datos actuales en este navegador:</strong> ${q} cotizaciones · ${r} referencias · ${ops} operaciones.<br>` +
+    `<strong>Respaldo recomendado:</strong> descargue una copia JSON y guárdela en Drive/otra PC. Para compartir/entregar, también puede usar el Excel del historial.`;
+  $('backupList').innerHTML = '<div>Modo estático: no hay copias automáticas en servidor. Use “Descargar copia actual”.</div>';
 }
 
 async function createBackup() {
-  try {
-    const result = await api('/api/backup/create', { method: 'POST' });
-    toast('Copia creada: ' + result.name);
-    await loadBackupStatus();
-  } catch (err) { $('backupStatus').textContent = 'Error: ' + err.message; }
+  downloadBackup();
 }
 
 function downloadBackup() {
-  toast('En modo web estático use el Excel del historial como respaldo.');
+  try {
+    const store = window.CotizadorStore;
+    const payload = store.exportBackup();
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15).replace('T', '_');
+    const fileName = `cotizador_backup_${stamp}.json`;
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    $('backupStatus').textContent = `Copia descargada: ${fileName} (${payload.quotes.length} cotizaciones). Guárdala en Drive/pendrive/otra PC.`;
+    toast('Copia de respaldo descargada');
+    loadBackupStatus();
+  } catch (err) {
+    $('backupStatus').textContent = 'Error al descargar copia: ' + err.message;
+  }
 }
 
 async function readBackupFile() {
@@ -876,7 +886,7 @@ async function verifyBackupFile() {
   if (!payload) return;
   $('backupStatus').textContent = 'Probando la copia seleccionada…';
   try {
-    const result = await api('/api/backup/verify', { method: 'POST', body: JSON.stringify(payload) });
+    const result = window.CotizadorStore.validateBackup(payload);
     $('backupStatus').textContent =
       `Copia válida: ${result.operations} operaciones, ${result.references} referencias y ${result.quotes} cotizaciones. ` +
       'Los datos actuales no se modificaron.';
@@ -888,7 +898,7 @@ async function verifyBackupFile() {
 async function restoreBackupFile() {
   const payload = await readBackupFile();
   if (!payload) return;
-  if (!confirm('Esto REEMPLAZA el catálogo, los parámetros y todas las cotizaciones actuales con la copia elegida. ¿Continuar?')) return;
+  if (!confirm('Esto REEMPLAZA el catálogo, los parámetros, referencias y cotizaciones actuales con la copia elegida. ¿Continuar?')) return;
   const word = prompt('Para confirmar, escriba RESTAURAR (en mayúsculas):');
   if (word === null) return;
   if (word.trim().toUpperCase() !== 'RESTAURAR') {
@@ -896,7 +906,7 @@ async function restoreBackupFile() {
     return;
   }
   try {
-    const result = await api('/api/backup/restore', { method: 'POST', body: JSON.stringify(payload) });
+    const result = window.CotizadorStore.importBackup(payload);
     sessionStorage.setItem('cotizadorMsg', `Copia restaurada: ${result.operations} operaciones, ${result.references} referencias y ${result.quotes} cotizaciones.`);
     location.reload();
   } catch (err) { $('backupStatus').textContent = 'Error: ' + err.message; }
