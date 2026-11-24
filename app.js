@@ -835,10 +835,17 @@ function renderBackupStatus() {
   const q = (window.CotizadorStore.quotes || []).length;
   const r = (window.CotizadorStore.refs || []).length;
   const ops = (window.CotizadorStore.catalog?.operations || []).length;
+  const remote = window.CotizadorStore.getRemoteStatus ? window.CotizadorStore.getRemoteStatus() : { enabled: false };
+  const syncMsg = remote.enabled
+    ? `<span style="color:var(--ok)">Nube Supabase activa: el historial se comparte entre dispositivos.</span>${remote.lastSyncAt ? '<br><strong>Última sync:</strong> ' + escapeHtml(new Date(remote.lastSyncAt).toLocaleString('es-CO')) : ''}${remote.lastError ? '<br><span style="color:var(--danger)">Error sync: ' + escapeHtml(remote.lastError) + '</span>' : ''}`
+    : `<span style="color:#a03">Nube no configurada: el historial solo está en este navegador.</span> Configure Supabase en <code>supabase-config.js</code> para guardado compartido.`;
   $('backupCurrent').innerHTML =
-    `<strong>Datos actuales en este navegador:</strong> ${q} cotizaciones · ${r} referencias · ${ops} operaciones.<br>` +
-    `<strong>Respaldo recomendado:</strong> descargue una copia JSON y guárdela en Drive/otra PC. Para compartir/entregar, también puede usar el Excel del historial.`;
-  $('backupList').innerHTML = '<div>Modo estático: no hay copias automáticas en servidor. Use “Descargar copia actual”.</div>';
+    `<strong>Datos actuales:</strong> ${q} cotizaciones · ${r} referencias · ${ops} operaciones.<br>` +
+    syncMsg +
+    `<br><strong>Respaldo extra:</strong> descargue una copia JSON y guárdela en Drive/otra PC.`;
+  $('backupList').innerHTML = remote.enabled
+    ? '<div>Guardado compartido activo. La copia JSON sigue siendo útil como respaldo manual.</div>'
+    : '<div>Modo local: use “Descargar copia actual” para mover el historial entre dispositivos.</div>';
 }
 
 async function createBackup() {
@@ -1402,6 +1409,9 @@ async function init() {
 
     const pending = sessionStorage.getItem('cotizadorMsg');
     if (pending) { sessionStorage.removeItem('cotizadorMsg'); toast(pending); }
+    const rs = window.CotizadorStore.getRemoteStatus ? window.CotizadorStore.getRemoteStatus() : null;
+    if (rs && rs.enabled) toast('Historial sincronizado con la nube');
+    else toast('Historial local: configura Supabase para guardarlo en cualquier dispositivo');
 
     state.lines = [newLine()];
     recalculateLocal();

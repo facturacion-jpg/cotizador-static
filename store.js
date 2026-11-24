@@ -5,6 +5,7 @@
   const LS_PARAMS = 'cotizador_v3_params';
   const LS_CATALOG = 'cotizador_v3_catalog';
   const LS_REFS = 'cotizador_v3_refs';
+  const REMOTE_KEY = 'shared_v1';
 
   function read(key, fallback) {
     try {
@@ -19,6 +20,72 @@
   let quotes = read(LS_QUOTES, []);
   let params = null;
   let refs = null;
+  let remote = { enabled: false, lastSyncAt: null, lastError: '' };
+
+  function hasRemote() {
+    const sb = window.CotizadorSupabase;
+    return !!(sb && sb.isReady() && sb.dbGet && sb.dbSet);
+  }
+
+  function snapshot() {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'cotizador-static',
+      catalog: catalog,
+      parameters: params ? { ...params } : null,
+      references: refs || [],
+      quotes: quotes || []
+    };
+  }
+
+  function applySnapshot(payload) {
+    if (!payload || typeof payload !== 'object') return false;
+    if (payload.catalog && typeof payload.catalog === 'object') { catalog = payload.catalog; write(LS_CATALOG, catalog); }
+    if (Array.isArray(payload.references)) { refs = payload.references; write(LS_REFS, refs); }
+    else if (payload.catalog && Array.isArray(payload.catalog.references)) { refs = payload.catalog.references; write(LS_REFS, refs); }
+    if (payload.parameters && typeof payload.parameters === 'object') { params = { ...params, ...payload.parameters }; write(LS_PARAMS, params); }
+    if (Array.isArray(payload.quotes)) { quotes = payload.quotes; write(LS_QUOTES, quotes); }
+    return true;
+  }
+
+  async function pullRemote() {
+    if (!hasRemote()) { remote.enabled = false; return { ok: false, reason: 'not-configured' }; }
+    remote.enabled = true;
+    try {
+      const row = await window.CotizadorSupabase.dbGet(REMOTE_KEY);
+      const value = row ? row.value : null;
+      if (value && typeof value === 'object') {
+        applySnapshot(value);
+        remote.lastSyncAt = row.updated_at || new Date().toISOString();
+        remote.lastError = '';
+        return { ok: true, pulled: true };
+      }
+      remote.lastError = '';
+      return { ok: true, pulled: false };
+    } catch (err) {
+      remote.lastError = err.message;
+      console.warn('Supabase pull failed:', err);
+      return { ok: false, reason: err.message };
+    }
+  }
+
+  async function pushRemote() {
+    if (!hasRemote()) { remote.enabled = false; return { ok: false, reason: 'not-configured' }; }
+    remote.enabled = true;
+    try {
+      await window.CotizadorSupabase.dbSet(REMOTE_KEY, snapshot());
+      remote.lastSyncAt = new Date().toISOString();
+      remote.lastError = '';
+      return { ok: true };
+    } catch (err) {
+      remote.lastError = err.message;
+      console.warn('Supabase push failed:', err);
+      return { ok: false, reason: err.message };
+    }
+  }
+
+  function pushRemoteSoon() { pushRemote().catch(() => {}); }
 
   function uid() {
     return 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
@@ -32,6 +99,7 @@
     refs = storedRefs && Array.isArray(storedRefs) ? storedRefs : (catalog.references || base.references || []);
     params = read(LS_PARAMS, null) || catalog.parameters || base.parameters;
     quotes = read(LS_QUOTES, []);
+    await pullRemote(); // si Supabase está configurado, usa estado compartido
     return bootstrap();
   }
 
@@ -39,10 +107,11 @@
     return {
       meta: catalog.meta || {},
       importInfo: { catalogBackup: false, storeBackup: false },
-      warning: null,
+      warning: remote.lastError ? ('Sync nube: ' + remote.lastError) : null,
       version: '3.0-static',
       readOnly: false,
       adminTokenRequired: false,
+      remote,
       parameters: { ...params },
       operations: catalog.operations || [],
       references: refs || [],
@@ -82,6 +151,7 @@
     };
     quotes.unshift(quote);
     write(LS_QUOTES, quotes);
+    pushRemoteSoon();
     return quote;
   }
 
@@ -96,6 +166,7 @@
     if (idx < 0) throw new Error('Cotización no encontrada');
     quotes.splice(idx, 1);
     write(LS_QUOTES, quotes);
+    pushRemoteSoon();
     return { ok: true };
   }
 
@@ -103,6 +174,7 @@
     engine.validateParams(p);
     params = { ...p };
     write(LS_PARAMS, params);
+    pushRemoteSoon();
     return currentParameters();
   }
 
@@ -111,6 +183,7 @@
     if (!ref) throw new Error('Referencia no encontrada');
     ref.marca = String(marca || '').trim();
     write(LS_REFS, refs);
+    pushRemoteSoon();
     return { ok: true, marca: ref.marca };
   }
 
@@ -119,6 +192,7 @@
     localStorage.removeItem(LS_PARAMS);
     localStorage.removeItem(LS_REFS);
     if (clearQuotes) localStorage.removeItem(LS_QUOTES);
+    pushRemoteSoon();
     return { ok: true };
   }
 
@@ -171,16 +245,18 @@
       quotes = payload.quotes;
       write(LS_QUOTES, quotes);
     }
+    pushRemoteSoon();
     return { ok: true, ...info };
   }
 
   window.CotizadorStore = {
     init, bootstrap, currentParameters, calculate, saveQuote, getQuote, deleteQuote,
     putParameters, putReference, clearData, exportBackup, validateBackup, importBackup,
+    pullRemote, pushRemote, getRemoteStatus: () => ({ ...remote, enabled: hasRemote() }),
     get quotes() { return quotes; },
     get catalog() { return catalog; },
     get refs() { return refs; },
-    setCatalog(c) { catalog = c; write(LS_CATALOG, c); refs = c.references || refs; write(LS_REFS, refs); params = c.parameters || params; write(LS_PARAMS, params); },
-    setQuotes(q) { quotes = q; write(LS_QUOTES, quotes); }
+    setCatalog(c) { catalog = c; write(LS_CATALOG, c); refs = c.references || refs; write(LS_REFS, refs); params = c.parameters || params; write(LS_PARAMS, params); pushRemoteSoon(); },
+    setQuotes(q) { quotes = q; write(LS_QUOTES, quotes); pushRemoteSoon(); }
   };
 })();

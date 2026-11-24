@@ -22,13 +22,19 @@ Versión estática de la UI 3.0 que corría en `cotizador-muestras.onrender.com`
 3. **Manual Deploy → Clear build cache & deploy**.
 4. Verificar en incógnito: `https://cotizador-static.onrender.com/`.
 
-## Opción recomendada para link de Excel: Supabase (sin tarjeta)
+## Guardado compartido + link de Excel: Supabase (sin tarjeta)
 
-Firebase Storage requiere plan Blaze/tarjeta. Para plan free sin tarjeta, usa Supabase:
+Firebase Storage requiere plan Blaze/tarjeta. Para plan free sin tarjeta, usa Supabase. La misma configuración sirve para:
+- **Enlace descargable del Excel** en correos (Storage + signed URL).
+- **Historial compartido en cualquier dispositivo** (tabla `cotizador_state`).
 
+### 1) Crear proyecto
 1. Crea proyecto en https://supabase.com (free).
-2. **Storage → New bucket**: `cotizador_exports` (Private recomendado).
-3. En **SQL Editor**, crea policies mínimas (ajusta el nombre del bucket si cambias):
+2. En **Project Settings → API** copia `Project URL` y `anon public key`.
+
+### 2) Storage para Excel
+1. **Storage → New bucket**: `cotizador_exports` (Private recomendado).
+2. En **SQL Editor**, ejecuta:
 
 ```sql
 -- Permite subir archivos al bucket desde la anon key (solo insert)
@@ -45,11 +51,53 @@ on storage.objects for select to anon
 using (bucket_id = 'cotizador_exports');
 ```
 
-4. En **Project Settings → API** copia `Project URL` y `anon public key`.
-5. Pégalos en `supabase-config.js`, commit/push. Render redeploya.
-6. Prueba con “Vista previa del correo”: debe mostrar enlace de descarga.
+### 3) Tabla para historial compartido
+En **SQL Editor**, ejecuta:
 
-> Nota seguridad: la `anon key` es pública. No habilites `list/delete` para anon. Usa signed URLs (el código ya las pide, expiran en 7 días por defecto).
+```sql
+create table if not exists public.cotizador_state (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.cotizador_state enable row level security;
+
+-- IMPORTANTE: esto permite leer/escribir el estado compartido con la anon key.
+-- Es práctico para uso interno rápido, pero no es seguro para datos públicos/sensibles.
+create policy "cotizador_state_select_anon"
+on public.cotizador_state for select to anon
+using (true);
+
+create policy "cotizador_state_insert_anon"
+on public.cotizador_state for insert to anon
+with check (true);
+
+create policy "cotizador_state_update_anon"
+on public.cotizador_state for update to anon
+using (true)
+with check (true);
+```
+
+### 4) Configurar la app
+1. En el repo `facturacion-jpg/cotizador-static`, edita `supabase-config.js`:
+
+```js
+window.COTIZADOR_SUPABASE_CONFIG = {
+  url: 'https://TU-PROYECTO.supabase.co',
+  anonKey: 'TU_ANON_PUBLIC_KEY',
+  bucket: 'cotizador_exports',
+  signedUrlSeconds: 604800 // 7 días
+};
+```
+
+2. Commit/push a `main`. Render redeploya.
+3. Prueba:
+   - Abre la app en dispositivo A, guarda una cotización.
+   - Abre la misma URL en dispositivo B/incógnito: debe aparecer en Historial.
+   - En Correo, “Vista previa del correo” debe mostrar enlace de descarga.
+
+> Nota seguridad: la `anon key` es pública. Las policies de `cotizador_state` hacen el historial compartido **sin login** (cualquiera con la key/proyecto podría leerlo si la obtiene). Para uso interno rápido está bien; para producción, agregar Auth y RLS por usuario.
 
 ## Opción Firebase Storage (requiere Blaze)
 
