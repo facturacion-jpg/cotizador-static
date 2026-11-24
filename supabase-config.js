@@ -5,8 +5,8 @@
 // 4) Pega Project URL y anon key aquí.
 
 window.COTIZADOR_SUPABASE_CONFIG = {
-  url: 'TODO_PEGAR_AQUI', // ej: https://xxxx.supabase.co
-  anonKey: 'TODO_PEGAR_AQUI',
+  url: 'https://tofsnzosjuxtfimdrtwf.supabase.co',
+  anonKey: 'sb_publishable_x4kcqUB7k12mtxBnwRrySQ_RKNtk74f',
   bucket: 'cotizador_exports',
   signedUrlSeconds: 604800 // 7 días
 };
