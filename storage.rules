@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Firebase Storage: Excel exportados para enlace en correo.
+// Requiere Auth anónima habilitada en Firebase Authentication.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /cotizador_exports/{fileName} {
+      // Cualquier sesión autenticada (incluida anónima) puede subir Excel.
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      // El destinatario del correo necesita descargar con el enlace/token.
+      allow read: if true;
+    }
+  }
+}

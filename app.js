@@ -156,11 +156,22 @@ function buildLocalEmailSummary(ids) {
 }
 
 function buildEmailBody(summary, opts) {
-  const linkUrl = opts && opts.linkUrl ? opts.linkUrl : '#';
-  return `Resumen de cotizaciones: ${summary.count}. Precio sugerido total: ${fmt(summary.totalPrice,2)}. Período: ${summary.from} al ${summary.to}. Enlace Excel: ${linkUrl}`;
+  const linkUrl = opts && opts.linkUrl ? opts.linkUrl : '';
+  const linkHtml = linkUrl
+    ? `<p><strong>Descargar Excel:</strong> <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener">${escapeHtml(linkUrl)}</a></p>`
+    : `<p><strong>Excel:</strong> ${(opts && opts.fileName) ? escapeHtml(opts.fileName) : 'adjunto/descargado localmente'} (sin enlace público; adjunte el archivo descargado).</p>`;
+  return [
+    '<div style="font-family:Arial,sans-serif;color:#222;line-height:1.45">',
+    '<h2 style="margin:0 0 12px">Resumen de cotizaciones</h2>',
+    `<p><strong>Cotizaciones:</strong> ${fmt(summary.count,0)} &nbsp;|&nbsp; <strong>Período:</strong> ${escapeHtml(summary.from)} al ${escapeHtml(summary.to)}</p>`,
+    `<p><strong>SAM total:</strong> ${fmt(summary.totalSam,3)} min &nbsp;|&nbsp; <strong>Costo total:</strong> ${money(summary.totalCost)} &nbsp;|&nbsp; <strong>Precio sugerido:</strong> ${money(summary.totalPrice)}</p>`,
+    linkHtml,
+    '</div>'
+  ].join('');
 }
 
-async function generateLocalExcel(ids) {
+async function generateLocalExcel(ids, opts) {
+  const options = opts || {};
   const XLSX = window.XLSX;
   if (!XLSX) throw new Error('No se pudo cargar la librería de Excel (SheetJS).');
   const list = quoteRowsForSummary(ids);
@@ -231,19 +242,45 @@ async function generateLocalExcel(ids) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detAoa), 'Detalle operaciones');
 
   const fileName = 'historial_' + new Date().toISOString().replace(/[-:]/g,'').slice(0,15).replace('T','_') + '.xlsx';
-  XLSX.writeFile(wb, fileName);
-  return { ok: true, fileName, count: list.length, url: '' };
+  const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  if (options.download !== false) XLSX.writeFile(wb, fileName);
+  return { ok: true, fileName, count: list.length, blob, summary };
 }
 
-async function buildLocalEmailPreview(ids) {
+async function uploadExcelForEmail(result) {
+  const fb = window.CotizadorFirebase;
+  if (!fb || !fb.isReady()) {
+    return { url: '', warning: 'Firebase no está configurado; el correo saldrá sin enlace público.' };
+  }
+  try {
+    const uploaded = await fb.uploadExcel(result.blob, result.fileName);
+    if (uploaded && uploaded.url) return { url: uploaded.url, warning: '' };
+  } catch (err) {
+    console.error('No se pudo subir el Excel a Firebase Storage:', err);
+    return { url: '', warning: 'No se pudo subir el Excel a Storage: ' + err.message };
+  }
+  return { url: '', warning: 'No se pudo obtener el enlace de descarga.' };
+}
+
+async function buildLocalEmailPreview(ids, opts) {
+  const options = opts || {};
   const summary = buildLocalEmailSummary(ids);
   if (!summary.count) throw new Error('Seleccione al menos una cotización para enviar.');
-  const res = await generateLocalExcel(ids);
+  const res = await generateLocalExcel(ids, { download: options.download !== false });
+  let downloadUrl = '';
+  let uploadWarning = '';
+  if (options.upload !== false) {
+    const uploaded = await uploadExcelForEmail(res);
+    downloadUrl = uploaded.url;
+    uploadWarning = uploaded.warning;
+  }
   return {
     ok: true,
     fileName: res.fileName,
-    downloadUrl: '',
-    message: buildEmailBody(summary, { linkUrl: '(adjunte el Excel descargado: ' + res.fileName + ')' }),
+    downloadUrl,
+    uploadWarning,
+    message: buildEmailBody(summary, { linkUrl: downloadUrl, fileName: res.fileName }),
     count: summary.count
   };
 }
@@ -919,19 +956,23 @@ async function previewMailJs() {
     mailStatus('Seleccione al menos una cotización en el historial.', true);
     return;
   }
-  mailStatus('Generando vista previa del correo…');
+  mailStatus('Generando vista previa y subiendo Excel (si Firebase está configurado)…');
   try {
-    const result = await buildLocalEmailPreview(getSelectedIds());
+    const result = await buildLocalEmailPreview(getSelectedIds(), { download: false, upload: true });
     const subject = $('mailSubject').value.trim() || 'Cotizaciones seleccionadas';
     const label = result.count === 1 ? 'cotización' : 'cotizaciones';
+    const linkText = result.downloadUrl
+      ? `<a href="${escapeHtml(result.downloadUrl)}" target="_blank" rel="noopener">Abrir enlace de descarga</a>`
+      : '<span style="color:#a03">Sin enlace público. Configure Firebase Storage o adjunte el Excel manualmente.</span>';
     $('mailPreview').innerHTML =
       '<strong>Vista previa del correo EmailJS</strong>' +
       '<p class="hint">Asunto: ' + escapeHtml(subject) + ' · ' + fmt(result.count, 0) + ' ' + label + '</p>' +
-      '<p class="hint">Excel generado: ' + escapeHtml(result.fileName) + '</p>' +
-      '<p class="hint">Enlace incluido: ' + escapeHtml(result.downloadUrl) + '</p>' +
+      '<p class="hint">Excel: ' + escapeHtml(result.fileName) + '</p>' +
+      '<p class="hint">Enlace: ' + linkText + '</p>' +
+      (result.uploadWarning ? '<p class="hint" style="color:#a03">' + escapeHtml(result.uploadWarning) + '</p>' : '') +
       '<div style="border:1px solid var(--line);border-radius:8px;padding:12px;max-height:260px;overflow:auto;background:#fff">' +
       result.message + '</div>';
-    mailStatus('Vista previa lista. El correo no se ha enviado todavía.');
+    mailStatus(result.downloadUrl ? 'Vista previa lista con enlace de descarga.' : 'Vista previa lista, pero sin enlace público.');
   } catch (err) {
     mailStatus('Error: ' + err.message, true);
   }
@@ -951,21 +992,20 @@ async function sendMailJs() {
   }
   const subject = $('mailSubject').value.trim() || 'Cotizaciones seleccionadas';
   const count = ids.length;
-  if (!confirm(`Se enviarán ${count} cotizaciones seleccionadas con un enlace al Excel a:\n${to}\n\n¿Continuar?`)) return;
+  if (!confirm(`Se enviarán ${count} cotizaciones seleccionadas por correo a:\n${to}\n\nEl Excel se descargará localmente y, si Firebase Storage está configurado, el correo incluirá enlace de descarga.\n\n¿Continuar?`)) return;
 
   const btn = $('btnSendMailJs');
   await withButtonLoading(btn, 'Procesando...', async () => {
-    mailStatus('Generando Excel y enviando por EmailJS…');
+    mailStatus('Generando Excel, subiendo a Storage y enviando por EmailJS…');
     let preview = null;
     try {
-      preview = await buildLocalEmailPreview(getSelectedIds());
+      preview = await buildLocalEmailPreview(getSelectedIds(), { download: true, upload: true });
     } catch (err) {
       mailStatus('No se pudo generar el Excel para el correo: ' + err.message, true);
       return;
     }
 
-    const downloadLink = preview.downloadUrl || ('(Excel descargado localmente: ' + preview.fileName + '. Adjúntelo manualmente si el correo lo requiere.)');
-    const reportHtml = preview.message + '<p><strong>Archivo:</strong> ' + escapeHtml(preview.fileName) + '</p>';
+    const reportHtml = preview.message;
     try {
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
@@ -980,7 +1020,9 @@ async function sendMailJs() {
             subject: subject,
             cotizador_subject: subject,
             report_html: reportHtml,
-            observations: '',
+            observations: preview.uploadWarning || '',
+            download_url: preview.downloadUrl || '',
+            file_name: preview.fileName,
             from_name: 'Cotizador de Muestras',
             reply_to: 'facturacion@crearte-sas.com'
           }
@@ -990,14 +1032,11 @@ async function sendMailJs() {
       if (!response.ok) {
         throw new Error('EmailJS respondió ' + response.status + ': ' + text.trim());
       }
-      mailStatus(`Correo enviado a ${to}. El Excel "${preview.fileName}" se descargó en este equipo; adjúntelo si su plantilla lo requiere.`);
+      const linkMsg = preview.downloadUrl ? ' con enlace de descarga' : ' sin enlace público (Firebase no configurado o subida fallida)';
+      mailStatus(`Correo enviado a ${to}${linkMsg}. Excel: ${preview.fileName}.` + (preview.uploadWarning ? ' Aviso: ' + preview.uploadWarning : ''));
       toast('Correo enviado por EmailJS');
     } catch (err) {
-      mailStatus('No se pudo enviar el correo por EmailJS: ' + err.message + '. El Excel "' + preview.fileName + '" como respaldo. Detalle: ' + err.message, true);
-        toast('Correo no enviado; Excel descargado como respaldo');
-      } catch (dlErr) {
-        mailStatus('No se pudo enviar el correo por EmailJS y tampoco se pudo descargar el Excel: ' + dlErr.message + '. Detalle del envío: ' + err.message, true);
-      }
+      mailStatus('No se pudo enviar el correo por EmailJS: ' + err.message + '. El Excel "' + preview.fileName + '" se descargó en este equipo.', true);
     }
   });
 }
