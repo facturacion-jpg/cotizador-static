@@ -1,0 +1,122 @@
+/* Estilos del módulo cotizador. Todo va prefijado con .ctz para no
+   chocar con los estilos de la aplicación principal. */
+
+.ctz {
+  --ctz-verde: #2d4036;
+  --ctz-verde-claro: #eaf4ed;
+  --ctz-amarillo: #f2c400;
+  --ctz-borde: #e1e9e2;
+  --ctz-fondo: #f8f6f0;
+  --ctz-texto: #171717;
+  --ctz-suave: #536258;
+  color: var(--ctz-texto);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ctz * { box-sizing: border-box; }
+
+.ctz-cabecera h2 { margin: 0 0 2px; font-size: 20px; color: var(--ctz-verde); }
+.ctz-cabecera p { margin: 0 0 14px; color: var(--ctz-suave); font-size: 12px; }
+
+.ctz-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.ctz-tabs button {
+  border: 1px solid var(--ctz-borde); background: #fff; color: var(--ctz-verde);
+  padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.ctz-tabs button.activo { background: var(--ctz-verde); border-color: var(--ctz-verde); color: #fff; }
+
+.ctz-panel { display: flex; flex-direction: column; gap: 14px; }
+.ctz-bloque {
+  background: #fff; border: 1px solid var(--ctz-borde); border-radius: 12px;
+  padding: 16px;
+}
+.ctz-bloque h3 { margin: 0 0 12px; font-size: 15px; color: var(--ctz-verde); }
+.ctz-bloque-cabecera {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px;
+}
+.ctz-bloque-cabecera h3 { margin: 0; font-size: 15px; color: var(--ctz-verde); }
+
+.ctz-fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.ctz-fila-wrap { flex-wrap: wrap; }
+.ctz-campo { display: flex; flex-direction: column; gap: 4px; min-width: 150px; flex: 1; }
+.ctz-campo span { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--ctz-suave); font-weight: 700; }
+.ctz-campo input, .ctz-campo select {
+  padding: 7px 9px; border: 1px solid var(--ctz-borde); border-radius: 7px;
+  font-size: 13px; background: #fff; color: var(--ctz-texto);
+}
+
+.ctz input[type="text"], .ctz input:not([type]), .ctz input[type="number"], .ctz input[type="search"] {
+  padding: 7px 9px; border: 1px solid var(--ctz-borde); border-radius: 7px;
+  font-size: 13px; background: #fff; color: var(--ctz-texto); min-width: 0;
+}
+.ctz .ctz-bloque-cabecera input { flex: 1; min-width: 220px; }
+
+.ctz-btn {
+  border: 1px solid var(--ctz-borde); background: var(--ctz-fondo); color: var(--ctz-verde);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px;
+}
+.ctz-btn:hover { background: #efece2; }
+.ctz-btn:disabled { opacity: .6; cursor: not-allowed; }
+.ctz-btn-primario { background: var(--ctz-verde); border-color: var(--ctz-verde); color: #fff; }
+.ctz-btn-primario:hover { background: #1f2e26; }
+.ctz-btn-mini {
+  border: 1px solid var(--ctz-borde); background: #fff; color: var(--ctz-verde);
+  padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700;
+}
+.ctz-btn-borrar {
+  border: 1px solid #f0c9c9; background: #fff7f7; color: #a33;
+  width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 15px; line-height: 1;
+}
+
+.ctz-tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ctz-tabla th, .ctz-tabla td { padding: 6px 8px; border-bottom: 1px solid var(--ctz-borde); text-align: left; vertical-align: middle; }
+.ctz-tabla thead th {
+  background: var(--ctz-verde); color: #fff; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
+}
+.ctz-tabla tbody tr:hover { background: #fbfaf5; }
+.ctz-tabla input[type="number"] { width: 88px; }
+.ctz-tabla td input[list] { min-width: 210px; width: 100%; }
+
+.ctz-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--ctz-borde); border-radius: 10px; }
+.ctz-scroll-alto { max-height: 560px; }
+.ctz-vacio { text-align: center; padding: 18px; color: var(--ctz-suave); }
+
+.ctz-totales {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.ctz-totales > div {
+  background: var(--ctz-fondo); border: 1px solid var(--ctz-borde); border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.ctz-totales span { font-size: 11px; color: var(--ctz-suave); text-transform: uppercase; font-weight: 700; }
+.ctz-totales strong { font-size: 16px; }
+.ctz-totales .ctz-destacado { background: var(--ctz-verde-claro); border-color: #c9e0d1; }
+.ctz-totales .ctz-destacado strong { color: var(--ctz-verde); }
+
+.ctz-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.ctz-nota { font-size: 11.5px; color: var(--ctz-suave); margin: 8px 0 0; }
+
+.ctz-aviso {
+  border-radius: 8px; padding: 9px 12px; font-size: 12.5px;
+  background: #eef4f7; border: 1px solid #cfe0e8; color: #24505f;
+}
+.ctz-aviso-error { background: #fdf1f1; border-color: #f0c9c9; color: #8e2f2f; }
+.ctz-aviso-ok { background: var(--ctz-verde-claro); border-color: #c9e0d1; color: #255c3a; }
+
+.ctz-error-texto { color: #a33; }
+.ctz-ok-texto { color: #255c3a; font-weight: 700; }
+.ctz-alerta-texto { color: #8a6a00; font-size: 11.5px; }
+
+.ctz-cargando { padding: 40px; text-align: center; color: var(--ctz-suave); }
+.ctz-resumen-import { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.ctz-resumen-import p { margin: 0; font-size: 13px; }
+.ctz-resumen-import .ctz-btn { align-self: flex-start; margin-top: 8px; }
+
+@media (max-width: 720px) {
+  .ctz-tabla { font-size: 12px; }
+  .ctz-tabla td input[list] { min-width: 150px; }
+}

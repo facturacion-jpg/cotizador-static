@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cotizador-muestras
+    runtime: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # Las variables VITE_FIREBASE_* se cargan en el panel de Render.
+    # Si se dejan vacías, la app funciona en modo local sin login.
