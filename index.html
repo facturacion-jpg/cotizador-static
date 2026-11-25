@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f2c400" />
   <title>Cotizador de Muestras · Web</title>
-  <link rel="stylesheet" href="./styles.css?v=20261124-responsive2" />
+  <link rel="stylesheet" href="./styles.css?v=20261125-back1" />
 </head>
 <body>
   <header class="topbar">
@@ -16,7 +16,30 @@
         <p>Tiempos estándar, costos de transformación y precio sugerido</p>
       </div>
     </div>
+    <a id="btnBackToPanel" class="back-to-panel" href="https://panel-accesos.onrender.com/?retornoAplicativo=1" aria-label="Volver al panel de aplicativos">← Volver al panel</a>
   </header>
+  <script>
+    (() => {
+      const link = document.getElementById('btnBackToPanel');
+      const defaultPanel = 'https://panel-accesos.onrender.com';
+      try {
+        const requested = new URLSearchParams(window.location.search).get('panel_return');
+        const referrerOrigin = document.referrer ? new URL(document.referrer).origin : '';
+        const requestedOrigin = requested ? new URL(requested).origin : '';
+        const candidate = requestedOrigin && (!referrerOrigin || requestedOrigin === referrerOrigin)
+          ? requestedOrigin
+          : defaultPanel;
+        const destination = new URL(candidate);
+        const localPanel = ['localhost', '127.0.0.1'].includes(destination.hostname);
+        if (destination.protocol === 'https:' || (localPanel && destination.protocol === 'http:')) {
+          destination.pathname = '/';
+          destination.search = '?retornoAplicativo=1';
+          destination.hash = '';
+          link.href = destination.href;
+        }
+      } catch (_) {}
+    })();
+  </script>
 
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="cotizar" type="button">Cotizar</button>
