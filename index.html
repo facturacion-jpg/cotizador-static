@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f2c400" />
   <title>Cotizador de Muestras · Web</title>
-  <link rel="stylesheet" href="./styles.css?v=20261125-back1" />
+  <script>
+    // Se aplica antes de cargar los estilos para evitar un destello claro.
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem('crearte:tema') === 'dark' ? 'dark' : 'light';
+    } catch (_) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  </script>
+  <link rel="stylesheet" href="./styles.css?v=20261125-theme1" />
 </head>
 <body>
   <header class="topbar">
@@ -16,7 +24,17 @@
         <p>Tiempos estándar, costos de transformación y precio sugerido</p>
       </div>
     </div>
-    <a id="btnBackToPanel" class="back-to-panel" href="https://panel-accesos.onrender.com/?retornoAplicativo=1" aria-label="Volver al panel de aplicativos">← Volver al panel</a>
+    <div class="header-tools">
+      <a id="btnBackToPanel" class="back-to-panel" href="https://panel-accesos.onrender.com/?retornoAplicativo=1" data-tip="Volver al panel" aria-label="Volver al panel">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5" />
+          <path d="M10 16l-4-4 4-4M6 12h9" />
+        </svg>
+      </a>
+      <button id="btnTheme" class="theme-toggle" type="button" title="Tema oscuro" aria-label="Activar modo oscuro" aria-pressed="false">
+        <span class="theme-icon" aria-hidden="true">☾</span>
+      </button>
+    </div>
   </header>
   <script>
     (() => {
@@ -38,6 +56,24 @@
           link.href = destination.href;
         }
       } catch (_) {}
+    })();
+  </script>
+  <script>
+    (() => {
+      const button = document.getElementById('btnTheme');
+      const icon = button.querySelector('.theme-icon');
+      const aplicar = (tema) => {
+        document.documentElement.dataset.theme = tema;
+        icon.textContent = tema === 'dark' ? '☀' : '☾';
+        button.title = tema === 'dark' ? 'Tema claro' : 'Tema oscuro';
+        button.setAttribute('aria-label', tema === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro');
+        button.setAttribute('aria-pressed', String(tema === 'dark'));
+        try { localStorage.setItem('crearte:tema', tema); } catch (_) {}
+      };
+      aplicar(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+      button.addEventListener('click', () => {
+        aplicar(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+      });
     })();
   </script>
 
@@ -246,6 +282,6 @@
   <script src="./firebase-client.js?v=20261124-fb1"></script>
   <script src="./engine.js?v=20261124-v3static"></script>
   <script src="./store.js?v=20261124-v3static"></script>
-  <script src="./app.js?v=20261124-sb1"></script>
+  <script src="./app.js?v=20261124-back1"></script>
 </body>
 </html>

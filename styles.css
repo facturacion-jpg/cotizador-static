@@ -72,14 +72,37 @@ body {
   gap: 16px; padding: 18px 28px; background: var(--card); border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; gap: 14px; align-items: center; }
+.header-tools { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 .back-to-panel {
-  display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center;
-  padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--card); color: var(--ink); font: inherit; font-weight: 600;
-  text-decoration: none; white-space: nowrap;
+  position: relative; display: inline-grid; place-items: center;
+  width: 40px; height: 40px; padding: 0;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--card); color: var(--ink); text-decoration: none;
 }
-.back-to-panel:hover { background: var(--line); }
+.back-to-panel svg {
+  width: 19px; height: 19px; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+.back-to-panel:hover { background: var(--brand-soft); border-color: var(--brand); }
 .back-to-panel:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.back-to-panel::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 8px); right: 0;
+  padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--card); color: var(--ink); font-size: 12px; font-weight: 600;
+  white-space: nowrap; box-shadow: 0 6px 18px #00000024;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .12s ease; z-index: 40;
+}
+.back-to-panel:hover::after, .back-to-panel:focus-visible::after { opacity: 1; visibility: visible; }
+.theme-toggle {
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--card); color: var(--ink);
+  transition: background .15s ease, color .15s ease;
+}
+.theme-toggle:hover { background: var(--brand-soft); border-color: var(--brand); }
+.theme-icon { font-size: 21px; line-height: 1; }
 .logo {
   width: 46px; height: 46px; border-radius: 12px; background: var(--brand);
   color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; letter-spacing: .5px;
@@ -226,7 +249,7 @@ textarea:focus { outline: 3px solid var(--brand-soft); border-color: var(--brand
   .logo { width: 40px; height: 40px; border-radius: 10px; font-size: 13px; flex: 0 0 auto; }
   .topbar h1 { font-size: 18px; line-height: 1.2; }
   .topbar p { font-size: 11px; }
-  .back-to-panel { margin-left: auto; padding: 8px 10px; font-size: 12px; }
+  .header-tools { margin-left: auto; gap: 8px; }
   .tabs, main { padding-left: 12px; padding-right: 12px; }
   .tabs { gap: 0; justify-content: space-between; overflow-x: visible; }
   .tab { padding: 10px 4px; font-size: 11px; flex: 1 1 0; text-align: center; letter-spacing: -0.2px; }
@@ -253,3 +276,38 @@ textarea:focus { outline: 3px solid var(--brand-soft); border-color: var(--brand
 @media (max-width: 400px) {
   .kpis { grid-template-columns: 1fr; }
 }
+
+/* Modo oscuro: misma paleta de Tallas, Auditorías y Telas, sin mover nada. */
+html[data-theme="dark"] {
+  --bg: #111111;
+  --card: #1c1c1c;
+  --ink: #f5f5f5;
+  --muted: #c2c2c2;
+  --line: #454545;
+  --brand: #ffd54a;
+  --brand-dark: #e6bf3f;
+  --brand-text: #ffd54a;
+  --brand-ink: #111111;
+  --brand-soft: #3a300b;
+  --accent: #3a300b;
+  --green: #6fdca6;
+  --green-soft: #173624;
+  --warn: #ffd54a;
+  --warn-soft: #3a300b;
+  --danger: #ff9a9d;
+  --danger-soft: #401a1c;
+  --ok: #6fdca6;
+  --sidebar: #242424;
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background: var(--bg); color: var(--ink); }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea { background: #242424; border-color: #454545; color: #f5f5f5; }
+html[data-theme="dark"] tbody tr:hover { background: #242424; }
+html[data-theme="dark"] .kpi.highlight { border-color: #6b5a1f; }
+html[data-theme="dark"] .success { background: #2f6b45; color: #fff; }
+html[data-theme="dark"] .back-to-panel,
+html[data-theme="dark"] .theme-toggle { border-color: #454545; }
+html[data-theme="dark"] .back-to-panel:hover,
+html[data-theme="dark"] .theme-toggle:hover { background: #403711; border-color: #ffd54a; color: #ffd54a; }

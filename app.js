@@ -838,7 +838,7 @@ function renderBackupStatus() {
   const remote = window.CotizadorStore.getRemoteStatus ? window.CotizadorStore.getRemoteStatus() : { enabled: false };
   const syncMsg = remote.enabled
     ? `<span style="color:var(--ok)">Nube Supabase activa: el historial se comparte entre dispositivos.</span>${remote.lastSyncAt ? '<br><strong>Última sync:</strong> ' + escapeHtml(new Date(remote.lastSyncAt).toLocaleString('es-CO')) : ''}${remote.lastError ? '<br><span style="color:var(--danger)">Error sync: ' + escapeHtml(remote.lastError) + '</span>' : ''}`
-    : `<span style="color:#a03">Nube no configurada: el historial solo está en este navegador.</span> Configure Supabase en <code>supabase-config.js</code> para guardado compartido.`;
+    : `<span style="color:var(--danger)">Nube no configurada: el historial solo está en este navegador.</span> Configure Supabase en <code>supabase-config.js</code> para guardado compartido.`;
   $('backupCurrent').innerHTML =
     `<strong>Datos actuales:</strong> ${q} cotizaciones · ${r} referencias · ${ops} operaciones.<br>` +
     syncMsg +
@@ -1002,14 +1002,14 @@ async function previewMailJs() {
     const label = result.count === 1 ? 'cotización' : 'cotizaciones';
     const linkText = result.downloadUrl
       ? `<a href="${escapeHtml(result.downloadUrl)}" target="_blank" rel="noopener">Abrir enlace de descarga</a>`
-      : '<span style="color:#a03">Sin enlace público. Configure Supabase/Firebase Storage o adjunte el Excel manualmente.</span>';
+      : '<span style="color:var(--danger)">Sin enlace público. Configure Supabase/Firebase Storage o adjunte el Excel manualmente.</span>';
     $('mailPreview').innerHTML =
       '<strong>Vista previa del correo EmailJS</strong>' +
       '<p class="hint">Asunto: ' + escapeHtml(subject) + ' · ' + fmt(result.count, 0) + ' ' + label + '</p>' +
       '<p class="hint">Excel: ' + escapeHtml(result.fileName) + '</p>' +
       '<p class="hint">Enlace: ' + linkText + '</p>' +
-      (result.uploadWarning ? '<p class="hint" style="color:#a03">' + escapeHtml(result.uploadWarning) + '</p>' : '') +
-      '<div style="border:1px solid var(--line);border-radius:8px;padding:12px;max-height:260px;overflow:auto;background:#fff">' +
+      (result.uploadWarning ? '<p class="hint" style="color:var(--danger)">' + escapeHtml(result.uploadWarning) + '</p>' : '') +
+      '<div style="border:1px solid var(--line);border-radius:8px;padding:12px;max-height:260px;overflow:auto;background:var(--card)">' +
       result.message + '</div>';
     mailStatus(result.downloadUrl ? 'Vista previa lista con enlace de descarga.' : 'Vista previa lista, pero sin enlace público.');
   } catch (err) {
